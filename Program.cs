@@ -1,21 +1,22 @@
-﻿namespace bot
+﻿namespace bot;
+
+public static class Program
 {
-    class Program
-    {      
-        static void Main(string[] args)
+    public static void Main(string[] args)
+    {
+        Console.WriteLine("=== PRESS `q` AT ANY TIME TO STOP THIS ===");
+
+        var bot = new GemBot();
+        bot.Start();
+
+        while (true)
         {
-            Console.WriteLine("=== PRESS `q` AT ANY TIME TO STOP THIS ===");
-            
-            var bot = new GemBot();
-            bot.Start();
+            var input = Console.ReadKey();
 
-            while (true){
-                var input = Console.ReadKey();
-
-                if (input != null && input.KeyChar == 'q'){
-                    break;
-                }
+            if (input.KeyChar == 'q')
+            {
+                break;
             }
-        }        
+        }
     }
 }

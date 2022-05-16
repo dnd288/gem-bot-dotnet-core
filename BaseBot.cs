@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using Sfs2X;
 using Sfs2X.Core;
 using Sfs2X.Util;
@@ -14,9 +15,9 @@ namespace bot
         private SmartFox sfs;
         private const string IP = "172.16.100.112";
         // private const string IP = "10.10.10.18";
-        private const string username = "trung.hoangdinh";
+        private const string username = "duong.nguyen";
 
-        private const string token = "bot";
+        private const string token = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkdW9uZy5uZ3V5ZW4iLCJhdXRoIjoiUk9MRV9VU0VSIiwiTEFTVF9MT0dJTl9USU1FIjoxNjUyNjgzNTU3Mjc5LCJleHAiOjE2NTI3Njk5NTd9.jHP66Nr9UWXChZ19wdj-LGMiWuMlqg21nzaqWpyOtwhbejt8RcbmrIdhi8sLtTyxhnNayq7RMGq95JfwGKAMmg";
 
         private const int TIME_INTERVAL_IN_MILLISECONDS = 1000;
         private const int ENEMY_PLAYER_ID = 0;
@@ -33,6 +34,8 @@ namespace bot
         protected Player enemyPlayer;
         protected int currentPlayerId;
         protected Grid grid;
+
+        private bool IsPlayed = false;
 
         public void Start()
         {
@@ -53,8 +56,10 @@ namespace bot
 
         public BaseBot()
         {
-            sfs = new SmartFox();
-            sfs.ThreadSafeMode = false;
+            sfs = new SmartFox
+            {
+                ThreadSafeMode = false
+            };
             sfs.AddEventListener(SFSEvent.CONNECTION, OnConnection);
             sfs.AddEventListener(SFSEvent.CONNECTION_LOST, OnConnectionLost);
             sfs.AddEventListener(SFSEvent.LOGIN, onLoginSuccess);
@@ -76,14 +81,9 @@ namespace bot
         private void OnRoomJoin(BaseEvent evt)
         {
             Console.WriteLine("Joined room " + this.sfs.LastJoinedRoom.Name);
-            this.room = (Room)evt.Params["room"];
-            if (room.IsGame)
-            {
-                isJoinGameRoom = true;
-                return;
-            }
-
-
+            room = (Room)evt.Params["room"];
+            if (!room.IsGame) return;
+            isJoinGameRoom = true;
             //taskScheduler.schedule(new FindRoomGame(), new Date(System.currentTimeMillis() + delayFindGame));
         }
 
@@ -101,8 +101,9 @@ namespace bot
             switch (cmd)
             {
                 case ConstantCommand.START_GAME:
-                    ISFSObject gameSession = evtParam.GetSFSObject("gameSession");
-
+                    var gameSession = evtParam.GetSFSObject("gameSession");
+                    log($"user: {room.UserList.Count}");
+                    log($"player: {room.PlayerList.Count}");
                     StartGame(gameSession, room);
                     break;
                 case ConstantCommand.END_GAME:
@@ -156,8 +157,8 @@ namespace bot
 
         private void OnConnection(BaseEvent evt)
         {
-            Console.WriteLine("Smartfox connection state: " + (bool)evt.Params["success"]);
-            SFSObject parameters = new SFSObject();
+            log("Smartfox connection state: " + (bool)evt.Params["success"]);
+            var parameters = new SFSObject();
             parameters.PutUtfString("BATTLE_MODE", "NORMAL");
             parameters.PutUtfString("ID_TOKEN", token);
             parameters.PutUtfString("NICK_NAME", username);
@@ -171,17 +172,17 @@ namespace bot
 
         private void endGame()
         {
+            IsPlayed = true;
+            throw new Exception("end game");
             isJoinGameRoom = false;
         }
 
         protected void AssignPlayers(Room room)
         {
-            User user1 = room.PlayerList[0];
-            log("id user1: " + user1.PlayerId);
-
+            var user1 = room.PlayerList[0];
             if (user1.IsItMe)
             {
-                botPlayer = new Player(user1.PlayerId, "player1");
+                botPlayer = new Player(user1.Id,  "player1");
                 enemyPlayer = new Player(ENEMY_PLAYER_ID, "player2");
             }
             else
@@ -189,6 +190,9 @@ namespace bot
                 botPlayer = new Player(BOT_PLAYER_ID, "player2");
                 enemyPlayer = new Player(ENEMY_PLAYER_ID, "player1");
             }
+            
+            log($"user1: {botPlayer.DisplayName}");
+            log($"user2: {enemyPlayer.DisplayName}");
         }
 
         protected void logStatus(String status, String logMsg)
@@ -221,26 +225,22 @@ namespace bot
         {
             var data = new SFSObject();
 
-            data.PutUtfString("casterId", heroCastSkill.id.ToString());
-            if (heroCastSkill.isHeroSelfSkill())
-            {
-                data.PutUtfString("targetId", botPlayer.firstHeroAlive().id.ToString());
-            }
-            else
-            {
-                data.PutUtfString("targetId", enemyPlayer.firstHeroAlive().id.ToString());
-            }
+            data.PutUtfString("casterId", heroCastSkill.Id.ToString());
+            data.PutUtfString("targetId",
+                heroCastSkill.IsHeroSelfSkill
+                    ? botPlayer.FirstHeroAlive?.Id.ToString()
+                    : enemyPlayer.FirstHeroAlive?.Id.ToString());
 
             data.PutUtfString("selectedGem", selectGem().ToString());
             data.PutUtfString("gemIndex", new Random().Next(64).ToString());
             data.PutBool("isTargetAllyOrNot", false);
-            log("sendExtensionRequest()|room:" + room.Name + "|extCmd:" + ConstantCommand.USE_SKILL + "|Hero cast skill: " + heroCastSkill.name);
+            log("sendExtensionRequest()|room:" + room.Name + "|extCmd:" + ConstantCommand.USE_SKILL + "|Hero cast skill: " + heroCastSkill.Name);
             sendExtensionRequest(ConstantCommand.USE_SKILL, data);
         }
 
         public void SendSwapGem()
         {
-            Pair<int> indexSwap = grid.recommendSwapGem();
+            var indexSwap = grid.recommendSwapGem();
 
             var data = new SFSObject();
             data.PutInt("index1", indexSwap.param1);
@@ -249,22 +249,22 @@ namespace bot
             sendExtensionRequest(ConstantCommand.SWAP_GEM, data);
         }
 
-        public void sendExtensionRequest(String extCmd, ISFSObject paramz)
+        private void sendExtensionRequest(String extCmd, ISFSObject paramz)
         {
             this.sfs.Send(new ExtensionRequest(extCmd, paramz, room));
         }
 
-        protected GemType selectGem()
+        private GemType selectGem()
         {
-            var recommendGemType = botPlayer.getRecommendGemType();
+            var recommendGemType = botPlayer.GetRecommendGemType();
 
-            return recommendGemType.Where(gemType => grid.gemTypes.Contains(gemType)).FirstOrDefault();
+            return recommendGemType.First(gemType => grid.GemTypes.Contains(gemType));
             //return botPlayer.getRecommendGemType().stream().filter(gemType -> grid.getGemTypes().contains(gemType)).findFirst().orElseGet(null);
         }
 
-        protected void TaskSchedule(int milliseconds, Action<Task> action)
+        protected static void TaskSchedule(int milliseconds, Action<Task> action)
         {
-            System.Threading.Tasks.Task.Delay(milliseconds).ContinueWith(action);
+            Task.Delay(milliseconds).ContinueWith(action);
         }
     }
 }

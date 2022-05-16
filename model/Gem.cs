@@ -1,46 +1,42 @@
-namespace bot 
-{
-    public class Gem {
+namespace bot; 
+public class Gem {
     private const int HEIGHT = 8;
     private const int WIDTH = 8;
-    public int index;
-    public int x;
-    public int y;
-    public GemType type;
+    public int Index { get; set; }
+    public int PosX { get; set; }
+    public int PosY { get; set; }
+    public GemType Type { get; }
 
     public Gem(int index, GemType type) {
-        this.index = index;
-        this.type = type;
-        updatePosition();
+        Index = index;
+        Type = type;
+        UpdatePosition();
     }
 
-    private void updatePosition() {
-        y = index / HEIGHT;
-        x = index - y * WIDTH;
+    private void UpdatePosition() {
+        PosY = Index / HEIGHT;
+        PosX = Index - PosY * WIDTH;
     }
 
     public bool sameType(Gem other) {
-        return this.type == other.type;
+        return this.Type == other.Type;
     }
 
     public bool sameType(GemType type) {
-        return this.type == type;
+        return Type == type;
     }
 
     public bool equals(Object o) {
         if (this == o) return true;
-        if (o == null || GetType() != o.GetType()) return false;
+        if (GetType() != o.GetType()) return false;
 
         Gem gem = (Gem) o;
 
-        if (index != gem.index) return false;
-        return type == gem.type;
+        if (Index != gem.Index) return false;
+        return Type == gem.Type;
     }
 
     public int hashCode() {
-        int result = index;
-        result = 31 * result + (type != null ? type.GetHashCode() : 0);
-        return result;
+        return 31 * Index + (Type.GetHashCode());
     }
-}
 }

@@ -4,48 +4,54 @@ using System.Collections;
 namespace bot
 {
     public class Hero {
-        public int playerId;
-        public HeroIdEnum id;
-        public String name;
-        public ArrayList gemTypes = new ArrayList();
-        private int maxHp; // Hp
-        private int maxMana; // Mp
-        private int attack;
-        private int hp;
-        private int mana;
+        private int PlayerId { get; }
+        public HeroIdEnum Id { get; }
+        public string Name { get; set; }
+        public List<GemType> GemTypes { get; } = new();
+        public int MaxHp { get; set; }
+        public int MaxMana { get; set; } // Mp
+        public int Attack { get; set; }
+        public int Hp { get; set; }
+        public int Mana { get; set; }
+
+        public bool IsAlive => Hp > 0;
+        public bool IsFullMana => Mana >= MaxMana;
+
+        public bool IsHeroSelfSkill => HeroIdEnum.SEA_SPIRIT == Id;
 
         public Hero(ISFSObject objHero) {
-            this.playerId = objHero.GetInt("playerId");
-            this.id = EnumUtil.ParseEnum<HeroIdEnum>(objHero.GetUtfString("id"));
-            //this.name = id.name();
-            this.attack = objHero.GetInt("attack");
-            this.hp = objHero.GetInt("hp");
-            this.mana = objHero.GetInt("mana");
-            this.maxMana = objHero.GetInt("maxMana");
+            PlayerId = objHero.GetInt("playerId");
+            Id = EnumUtil.ParseEnum<HeroIdEnum>(objHero.GetUtfString("id"));
+            Name = Id.ToString();
+            Attack = objHero.GetInt("attack");
+            MaxHp = objHero.GetInt("maxHp");
+            Hp = objHero.GetInt("hp");
+            Mana = objHero.GetInt("mana");
+            MaxMana = objHero.GetInt("maxMana");
 
-            ISFSArray arrGemTypes = objHero.GetSFSArray("gemTypes");
-            for (int i = 0; i < arrGemTypes.Size(); i++) {
-                this.gemTypes.Add(EnumUtil.ParseEnum<GemType>(arrGemTypes.GetUtfString(i)));
+            var arrGemTypes = objHero.GetSFSArray("gemTypes");
+            for (var i = 0; i < arrGemTypes.Count; i++) {
+                GemTypes.Add(EnumUtil.ParseEnum<GemType>(arrGemTypes.GetUtfString(i)));
             }
         }
 
         public void updateHero(ISFSObject objHero) {
-            this.attack = objHero.GetInt("attack");
-            this.hp = objHero.GetInt("hp");
-            this.mana = objHero.GetInt("mana");
-            this.maxMana = objHero.GetInt("maxMana");
+            Attack = objHero.GetInt("attack");
+            Hp = objHero.GetInt("hp");
+            Mana = objHero.GetInt("mana");
+            MaxMana = objHero.GetInt("maxMana");
         }
 
-        public bool isAlive() {
-            return hp > 0;
-        }
+        public string PrintGemType()
+        {
+            var str = string.Empty;
+            foreach (var gemType in GemTypes)
+            {
+                str += gemType.ToString();
+                str += "-";
+            }
 
-        public bool isFullMana() {
-            return mana >= maxMana;
-        }
-
-        public bool isHeroSelfSkill() {
-            return HeroIdEnum.SEA_SPIRIT == id;
+            return str;
         }
     }
 }

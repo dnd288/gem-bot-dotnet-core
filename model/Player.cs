@@ -2,47 +2,31 @@
 namespace bot {
     public class Player
     {
-        public int playerId;
-        public string displayName;
-        public List<Hero> heroes;
-        public HashSet<GemType> heroGemType;
+        public int Id { get; }
+        public string Name { get; }
+        public string DisplayName { get; }
+        public List<Hero> Heroes { get; }
+        private HashSet<GemType> HeroGemType { get; }
+        
+        public Hero? FirstHeroFullMana => Heroes.FirstOrDefault(hero => hero.IsAlive && hero.IsFullMana);
+
+        public Hero? FirstHeroAlive => Heroes.FirstOrDefault(s => s.IsAlive);
 
         public Player(int playerId, string name)
         {
-            this.playerId = playerId;
-            this.displayName = name;
+            Id = playerId;
+            Name = name;
+            DisplayName = name;
 
-            heroes = new List<Hero>();
-            heroGemType = new HashSet<GemType>();
+            Heroes = new List<Hero>();
+            HeroGemType = new HashSet<GemType>();
         }
 
-        public Hero anyHeroFullMana() {
-            foreach(var hero in heroes){
-                if (hero.isAlive() && hero.isFullMana()) return hero;
-            }
-
-            return null;
-        }
-
-        public Hero firstHeroAlive() {
-            foreach(var hero in heroes){
-                if (hero.isAlive()) return hero;
-            }
-
-            return null;
-        }
-
-        public HashSet<GemType> getRecommendGemType() {
-            heroGemType.Clear();
-            foreach(var hero in heroes){
-                if (!hero.isAlive()) continue;
-                
-                foreach(var gt in hero.gemTypes){
-                    heroGemType.Add((GemType)gt);
-                }
-            }
-
-            return heroGemType;
+        public HashSet<GemType> GetRecommendGemType() {
+            HeroGemType.Clear();
+            HeroGemType.UnionWith(Heroes.Where(s => s.IsAlive)
+                                            .SelectMany(s => s.GemTypes));
+            return HeroGemType;
         }
     }
 }
